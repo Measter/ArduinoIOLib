@@ -4,22 +4,24 @@
 
 class Button
 {
-	const unsigned char m_pin;
-	const unsigned char m_debounce;
+	unsigned char m_pin;
+	unsigned char m_debounce;
 	unsigned long m_lastPressTime = 0;
 	bool m_curState = false;
 	bool m_toggleState = false;
 	bool m_hadStateChange = false;
-	const bool m_isPullUp;
-	const bool m_simToggle;
+	bool m_isPullUp;
+	bool m_simToggle;
 	
 public:
+	Button(){}
 
 	Button(unsigned char pin, unsigned char debounce, bool isPullUp, bool simToggle)
 			: m_pin(pin),
 			  m_debounce(debounce),
 			  m_isPullUp(isPullUp),
-			  m_simToggle(simToggle) {
+			  m_simToggle(simToggle)
+	{
 				  
 		if (m_isPullUp)
 			pinMode(m_pin, INPUT_PULLUP);

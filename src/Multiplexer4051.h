@@ -41,6 +41,8 @@ class Multiplexer4051
 		setupPins(i + 1, pins...);
 	}
 public:
+	Multiplexer4051(){}
+	
 	template <typename... Targs>
 	Multiplexer4051(unsigned char addr0, unsigned char addr1, unsigned char addr2, bool isOutput, bool isPullUp, Targs...pins)
 			: m_addr0(addr0),
