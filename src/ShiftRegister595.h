@@ -1,5 +1,5 @@
-#ifndef SHIFTREGISTER_H
-#define SHIFTREGISTER_H
+#ifndef SHIFTREGISTER_595_H
+#define SHIFTREGISTER_595_H
 #include <Arduino.h>
 #include <pins_arduino.h>
 #include <wiring_private.h>
