@@ -3,34 +3,73 @@
 
 #include <Multiplexer4051.h>
 #include <Button.h>
+#include "turn_off_pwm.h"
 
 class MultiplexedButtons4051
 {
 	Button m_btnArr[8];
-	unsigned char m_addr0, m_addr1, m_addr2, m_cmn;
+	unsigned char m_addr0Port, m_addr1Port, m_addr2Port;
+	unsigned char m_addr0Bit, m_addr1Bit, m_addr2Bit;
+	volatile unsigned char *m_addr0Reg, *m_addr1Reg, *m_addr2Reg;
 	bool m_isPullUp;
-	
-	void setAddress(unsigned char address) const {
-		digitalWrite(m_addr2, address & 0x4);
-		digitalWrite(m_addr1, address & 0x2);
-		digitalWrite(m_addr0, address & 0x1);
+
+	void setPin(volatile unsigned char *reg, unsigned char bit, bool val) {
+		unsigned char oldSREG = SREG;
+		cli();
+
+		if (val)
+			*reg |= bit;
+		else
+			*reg &= ~bit;
+
+		SREG = oldSREG;
+	}
+
+	void setAddress(unsigned char address) {
+		setPin(m_addr2Reg, m_addr2Bit, address & 0x4);
+		setPin(m_addr1Reg, m_addr1Bit, address & 0x2);
+		setPin(m_addr0Reg, m_addr0Bit, address & 0x1);
 	}
 
  public:
 	MultiplexedButtons4051(){}
  
 	MultiplexedButtons4051(unsigned char addr0, unsigned char addr1, unsigned char addr2,
-			       unsigned char cmn, bool isPullUp, bool toggleMode[], unsigned char debounce)
-				: m_addr0(addr0),
-			      m_addr1(addr1),
-			      m_addr2(addr2),
-				  m_cmn(cmn),
-				  m_isPullUp(isPullUp)
+			       unsigned char cmn, bool isPullUp, bool toggleMode[], unsigned char debounce)		  
 	{
-		pinMode(m_addr0, OUTPUT);
-		pinMode(m_addr1, OUTPUT);
-		pinMode(m_addr2, OUTPUT);
+		m_isPullUp = isPullUp;
+		
+		pinMode(addr0, OUTPUT);
+		pinMode(addr1, OUTPUT);
+		pinMode(addr2, OUTPUT);
 		pinMode(cmn, m_isPullUp ? INPUT_PULLUP : INPUT);
+
+		// Manually setup pins for speeding up the data output.
+		m_addr0Port = digitalPinToPort(addr0);
+		m_addr1Port = digitalPinToPort(addr1);
+		m_addr2Port = digitalPinToPort(addr2);
+
+		if (m_addr0Port == NOT_A_PORT) return;
+		if (m_addr1Port == NOT_A_PORT) return;
+		if (m_addr2Port == NOT_A_PORT) return;
+
+		m_addr0Bit = digitalPinToBitMask(addr0);
+		m_addr1Bit = digitalPinToBitMask(addr1);
+		m_addr2Bit = digitalPinToBitMask(addr2);
+
+		// Manually disable PWM.
+		unsigned char timer = digitalPinToTimer(addr0);
+		if (timer != NOT_ON_TIMER) turn_off_pwm(timer);
+
+		timer = digitalPinToTimer(addr1);
+		if (timer != NOT_ON_TIMER) turn_off_pwm(timer);
+
+		timer = digitalPinToTimer(addr2);
+		if (timer != NOT_ON_TIMER) turn_off_pwm(timer);
+
+		m_addr0Reg = portOutputRegister(m_addr0Port);
+		m_addr1Reg = portOutputRegister(m_addr1Port);
+		m_addr2Reg = portOutputRegister(m_addr2Port);
 		
 		for(unsigned char i = 0; i < 8; i++) {
 			m_btnArr[i] = Button(cmn, debounce, isPullUp, toggleMode[i]);
@@ -38,6 +77,10 @@ class MultiplexedButtons4051
 	}
 	
 	void updateState() {
+		if (m_addr0Port == NOT_A_PORT) return;
+		if (m_addr1Port == NOT_A_PORT) return;
+		if (m_addr2Port == NOT_A_PORT) return;
+		
 		for (unsigned char i = 0; i < 8; i++) {
 			setAddress(i);
 			m_btnArr[i].updateState();

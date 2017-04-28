@@ -1,10 +1,12 @@
 #ifndef BUTTON_H
 #define BUTTON_H
 #include <Arduino.h>
+#include "FastPin.h"
 
 class Button
 {
-	unsigned char m_pin;
+	FastPin m_pin;
+	unsigned char m_oldPin;
 	unsigned char m_debounce;
 	unsigned long m_lastPressTime = 0;
 	bool m_curState = false;
@@ -17,20 +19,16 @@ public:
 	Button(){}
 
 	Button(unsigned char pin, unsigned char debounce, bool isPullUp, bool simToggle)
-			: m_pin(pin),
+			: m_pin(FastPin(pin, isPullUp ? INPUT_PULLUP : INPUT)),
+			  m_oldPin( pin ),
 			  m_debounce(debounce),
 			  m_isPullUp(isPullUp),
 			  m_simToggle(simToggle)
-	{
-				  
-		if (m_isPullUp)
-			pinMode(m_pin, INPUT_PULLUP);
-		else
-			pinMode(m_pin, INPUT);
-	}
+	{}
 
 	void updateState() {
-		bool curPressed = digitalRead(m_pin);
+		//bool curPressed = m_pin.getPin();
+		bool curPressed = digitalRead(m_oldPin);
 		if (m_isPullUp)
 			curPressed = !curPressed;
 
